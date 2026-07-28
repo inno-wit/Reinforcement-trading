@@ -1,0 +1,6 @@
+data/*.csv
+models/
+outputs/
+__pycache__/
+.venv/
+.ipynb_checkpoints/
