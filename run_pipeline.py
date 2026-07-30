@@ -1,9 +1,16 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import asdict
 from pathlib import Path
 
 import pandas as pd
+
+# Non-interactive/redirected consoles (SSH, Scheduled Task) don't default to
+# UTF-8; baselines.py prints non-ASCII markers on its main path.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
 from config import CFG
 from data_loader import (

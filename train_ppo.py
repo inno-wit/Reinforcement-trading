@@ -13,6 +13,13 @@ from stable_baselines3.common.callbacks import BaseCallback, CallbackList, EvalC
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
+# Unattended runs (Scheduled Task / cron) don't inherit an interactive
+# console's codepage; this script prints non-ASCII markers (arrows, checks)
+# on its main path, which crashes cp1252/cp437 consoles otherwise.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 from config import CFG
 from data_loader import (
     load_mt_ohlcv_csv,
