@@ -3,6 +3,12 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+# Below this many closed trades, annualised/ratio metrics are extrapolated
+# from too few samples to mean anything (a handful of trades can flip a
+# Sharpe/Sortino/Calmar figure's sign) — suppress them rather than let them
+# read as findings.
+MIN_TRADES_FOR_RATIOS = 30
+
 
 def drawdown(equity: pd.Series) -> pd.Series:
     peak = equity.cummax()
@@ -85,8 +91,21 @@ def summarize_trades(trades: pd.DataFrame) -> dict:
 def full_report(equity_df: pd.DataFrame, trades: pd.DataFrame,
                 initial_equity: float = 10_000.0,
                 periods_per_year: int = 252 * 24 * 12) -> pd.DataFrame:
-    d = {}
-    d.update(summarize_equity(equity_df, initial_equity=initial_equity,
-                              periods_per_year=periods_per_year))
-    d.update(summarize_trades(trades))
+    equity_summary = summarize_equity(equity_df, initial_equity=initial_equity,
+                                      periods_per_year=periods_per_year)
+    trade_summary = summarize_trades(trades)
+
+    n_trades = trade_summary.get("n_trades", 0)
+    if n_trades < MIN_TRADES_FOR_RATIOS:
+        for key in ("annualized_return_pct", "sharpe_like", "sortino_ratio", "calmar_ratio"):
+            if key in equity_summary:
+                equity_summary[key] = np.nan
+        equity_summary["low_sample_warning"] = (
+            f"n_trades={n_trades} < {MIN_TRADES_FOR_RATIOS}: annualised/ratio metrics suppressed"
+        )
+
+    # Sample-size fields lead the report so undersized runs can't be missed.
+    d = {"n_trades": n_trades, "n_equity_points": equity_summary.get("n_equity_points")}
+    d.update(equity_summary)
+    d.update(trade_summary)
     return pd.DataFrame.from_dict(d, orient="index", columns=["value"])
